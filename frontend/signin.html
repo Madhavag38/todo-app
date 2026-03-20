@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome Back</h2>
+    <form>
+      <div class="input-group">
+        <input type="email" placeholder="Email" required>
+      </div>
+      <div class="input-group">
+        <input type="password" placeholder="Password" required>
+      </div>
+      <button type="submit">Login</button>
+      <div class="link">
+        Don't have account? <a href="signup.html">Signup</a>
+      </div>
+    </form>
+  </div>
+  <script>
+const form = document.querySelector("form");
+
+form.addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const email = form.querySelector("input[type='email']").value;
+  const password = form.querySelector("input[type='password']").value;
+
+  const response = await fetch("http://localhost:3000/signin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email,
+      password
+    })
+  });
+
+  const data = await response.json();
+
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+    window.location.href = "dashboard.html";
+  } else {
+    alert("Login failed");
+  }
+});
+</script>
+</body>
+</html>

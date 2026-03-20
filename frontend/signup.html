@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signup</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Create Account</h2>
+
+    <form id="signupForm">
+      <div class="input-group">
+        <input id="name" name="name" type="text" placeholder="Full Name" required>
+      </div>
+
+      <div class="input-group">
+        <input id="email" name="email" type="email" placeholder="Email" required autocomplete="email">
+      </div>
+
+      <div class="input-group">
+        <input id="password" name="password" type="password" placeholder="Password" required minlength="6" autocomplete="new-password">
+      </div>
+
+      <button type="submit">Signup</button>
+
+      <div class="link">
+        Already have account? <a href="signin.html">Login</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById("signupForm");
+
+    form.addEventListener("submit", async (e) => { // when click on submit then the event starts.
+      e.preventDefault(); // stop reloading
+
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        const response = await fetch("http://localhost:3000/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name, email, password })
+        });
+
+        const data = await response.json();
+        alert(data.msg);
+
+      } catch (error) {
+        alert("Something went wrong!");
+      }
+    });
+  </script>
+</body>
+</html>

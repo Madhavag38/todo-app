@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard">
+    <button id="themeToggle" class="theme-toggle">🌙</button>
+    <h2>Your Todo Dashboard</h2>
+    <p id="statusMsg"></p>
+    <form id="todoForm" class="todo-form">
+      <input 
+        id="todoInput"
+        type="text" 
+        placeholder="Enter new task" 
+        required
+      >
+      <button type="submit">Add</button>
+    </form>
+
+    <ul id="todoList" class="todo-list"></ul>
+
+    <button id="logoutBtn" class="logout">Logout</button>
+  </div>
+
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+  window.location.href = "signin.html";
+}
+
+const form = document.getElementById("todoForm");
+const input = document.getElementById("todoInput");
+const list = document.getElementById("todoList");
+const logoutBtn = document.getElementById("logoutBtn");
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.style.color = isError ? "red" : "green";
+}
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const title = input.value.trim();
+  if (!title) {
+    alert("Please enter a todo");
+    return;
+  }
+
+  setStatus("Creating todo...");
+
+  const response = await fetch("http://localhost:3000/todo", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ title: title, done: false })
+  });
+
+  if (!response.ok) {
+    setStatus("Failed to create todo", true);
+    return;
+  }
+
+  input.value = "";
+  setStatus("Todo added");
+  loadTodos();
+});
+async function loadTodos() {
+  setStatus("Loading todos...");
+
+  try {
+    const response = await fetch("http://localhost:3000/todos", {
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    if (!response.ok) {
+      setStatus("Failed to load todos", true);
+      return;
+    }
+
+    const data = await response.json();
+    setStatus("");
+    list.innerHTML = "";
+
+    data.todos.forEach(function(todo) {
+      const li = document.createElement("li");
+      li.className = "todo-item";
+
+      li.innerHTML =
+        "<span class='todo-text " + (todo.done ? "done" : "") + "'>" +
+        todo.title +
+        "</span>" +
+        "<div class='todo-actions'>" +
+        "<button class='complete-btn'>✔</button>" +
+        "<button class='edit-btn'>✏️</button>" +
+        "<button class='delete-btn'>🗑</button>" +
+        "</div>";
+
+      const completeBtn = li.querySelector(".complete-btn");
+      const editBtn = li.querySelector(".edit-btn");
+      const deleteBtn = li.querySelector(".delete-btn");
+
+      completeBtn.addEventListener("click", async function() {
+        completeBtn.disabled = true;
+        setStatus("Updating...");
+
+        const response = await fetch("http://localhost:3000/todo/" + todo._id, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify({ done: !todo.done })
+        });
+
+        if (!response.ok) {
+          setStatus("Failed to update", true);
+          completeBtn.disabled = false;
+          return;
+        }
+
+        loadTodos();
+      });
+      editBtn.addEventListener("click", () => {
+        const span = li.querySelector(".todo-text");
+
+        const editInput = document.createElement("input");
+        editInput.value = span.textContent;
+        editInput.className = "edit-input";
+
+        span.replaceWith(editInput);
+        editInput.focus();
+
+        editInput.addEventListener("blur", async () => {
+          const newTitle = editInput.value.trim();
+          if (!newTitle) return loadTodos();
+
+          setStatus("Updating...");
+
+          const response = await fetch("http://localhost:3000/todo/" + todo._id, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ title: newTitle })
+          });
+
+          if (!response.ok) {
+            setStatus("Update failed", true);
+            return;
+          }
+
+          loadTodos();
+        });
+      });
+      deleteBtn.addEventListener("click", async function() {
+        if (!confirm("Delete this todo?")) return;
+
+        deleteBtn.disabled = true;
+        setStatus("Deleting...");
+
+        const response = await fetch("http://localhost:3000/todo/" + todo._id, {
+          method: "DELETE",
+          headers: {
+            "Authorization": "Bearer " + token
+          }
+        });
+
+        if (!response.ok) {
+          setStatus("Delete failed", true);
+          deleteBtn.disabled = false;
+          return;
+        }
+
+        loadTodos();
+      });
+
+      list.appendChild(li);
+    });
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Server error", true);
+  }
+}
+logoutBtn.addEventListener("click", function() {
+  localStorage.removeItem("token");
+  window.location.href = "signin.html";
+});
+const themeToggle = document.getElementById("themeToggle");
+
+if (localStorage.getItem("theme") === "dark") {
+  document.body.classList.add("dark");
+}
+
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+
+  if (document.body.classList.contains("dark")) {
+    localStorage.setItem("theme", "dark");
+    themeToggle.textContent = "☀️";
+  } else {
+    localStorage.setItem("theme", "light");
+    themeToggle.textContent = "🌙";
+  }
+});
+loadTodos();
+</script>
+</body>
+</html>
